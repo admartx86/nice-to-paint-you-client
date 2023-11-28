@@ -4,5 +4,5 @@ export default function Home() {
       <p>👨‍🎨 "Nice to paint you!"</p>
       <p>👩‍🎨 "Nice to paint you, too!"</p>
     </main>
-  )
+  );
 }
