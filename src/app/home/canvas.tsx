@@ -24,22 +24,34 @@ const Canvas = () => {
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const { offsetX, offsetY } = e.nativeEvent;
-    const ctx = canvasRef.current?.getContext('2d');
+    setIsDrawing(true);
+
+    const ctx = canvasRef.current.getContext('2d');
     if (ctx) {
       ctx.beginPath();
-      ctx.moveTo(offsetX, offsetY);
-      setIsDrawing(true);
+      ctx.moveTo(offsetX, offsetY); // Start the path at the current mouse position
+      ctx.lineTo(offsetX, offsetY); // Draw a tiny line segment at the same point
+      ctx.stroke(); // Render the stroke, which will appear as a dot
     }
   };
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return;
+
+    const ctx = canvasRef.current.getContext('2d');
+    if (!ctx) return;
+
     const { offsetX, offsetY } = e.nativeEvent;
-    const ctx = canvasRef.current?.getContext('2d');
-    if (ctx) {
-      ctx.lineTo(offsetX, offsetY);
-      ctx.stroke();
-    }
+
+    ctx.lineWidth = 10; // Width of the line (also the diameter of the circle)
+    ctx.lineCap = 'round'; // Creates a rounded end of the line
+    ctx.strokeStyle = 'black'; // Set the stroke color
+
+    ctx.lineTo(offsetX, offsetY); // Draw a line to the current point
+    ctx.stroke(); // Apply the stroke
+
+    ctx.beginPath(); // Begin a new path for the next segment
+    ctx.moveTo(offsetX, offsetY); // Move the path to the current point without creating a line
   };
 
   const stopDrawing = () => {
