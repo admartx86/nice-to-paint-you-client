@@ -1,4 +1,4 @@
-import Canvas from "./home/canvas";
+import Canvas from './home/canvas';
 
 export default function Home() {
   return (

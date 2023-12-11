@@ -1,22 +1,22 @@
-// components/Canvas.tsx
-"use client";
+'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
 
 const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [history, setHistory] = useState<string[]>([]); //new
+  const [history, setHistory] = useState<string[]>([]);
+  const [redoHistory, setRedoHistory] = useState<string[]>([]);
 
   const saveState = () => {
     if (canvasRef.current) {
       const canvasState = canvasRef.current.toDataURL();
-      setHistory(prevHistory => [...prevHistory, canvasState]);
+      setHistory((prevHistory) => [...prevHistory, canvasState]);
+      setRedoHistory([]);
     }
   };
 
   useEffect(() => {
-    // Save the initial blank state of the canvas
     if (canvasRef.current) {
       saveState();
     }
@@ -47,39 +47,52 @@ const Canvas = () => {
     if (ctx) {
       ctx.closePath();
       setIsDrawing(false);
-      saveState(); // Save the state when the drawing stops
+      saveState();
     }
   };
 
   const undoLast = () => {
-    if (history.length <= 1) return; 
+    if (history.length <= 1) return;
+    setRedoHistory((redoHistory) => [...redoHistory, history[history.length - 1]]);
+    setHistory((history) => history.slice(0, -1));
+    applyState(history[history.length - 2]);
+  };
+
+  const redoLast = () => {
+    if (redoHistory.length === 0) return;
+    const nextState = redoHistory[redoHistory.length - 1];
+    setHistory((history) => [...history, nextState]);
+    setRedoHistory((redoHistory) => redoHistory.slice(0, -1));
+    applyState(nextState);
+  };
+
+  const applyState = (state: string) => {
     const ctx = canvasRef.current?.getContext('2d');
     if (ctx) {
-      const lastState = history[history.length - 2]; // Get the second last state
       const image = new Image();
       image.onload = () => {
         ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         ctx.drawImage(image, 0, 0);
       };
-      image.src = lastState;
-      setHistory(history.slice(0, -1)); // Remove the last state
+      image.src = state;
     }
   };
 
   useEffect(() => {
-    const handleUndo = (e: KeyboardEvent) => {
+    const handleKeydown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.key === 'z') {
         undoLast();
+      } else if (e.ctrlKey && e.key === 'y') {
+        redoLast();
       }
     };
 
-    window.addEventListener('keydown', handleUndo);
+    window.addEventListener('keydown', handleKeydown);
 
     return () => {
-      window.removeEventListener('keydown', handleUndo);
+      window.removeEventListener('keydown', handleKeydown);
     };
-  }, [history]);
-
+  }, [history, redoHistory]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
