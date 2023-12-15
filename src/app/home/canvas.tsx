@@ -153,27 +153,56 @@ const Canvas = () => {
 
   const startDrawing = (e) => {
     e.preventDefault(); // Prevent default behavior for touch events
-
+  
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+  
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+  
     let offsetX, offsetY;
     if (e.touches) {
       // Handle touch events
-      offsetX = e.touches[0].clientX - canvasRef.current.getBoundingClientRect().left;
-      offsetY = e.touches[0].clientY - canvasRef.current.getBoundingClientRect().top;
+      offsetX = (e.touches[0].clientX - rect.left) * scaleX - panOffset.x / zoomLevel;
+      offsetY = (e.touches[0].clientY - rect.top) * scaleY - panOffset.y / zoomLevel;
     } else {
       // Handle mouse events
-      offsetX = e.nativeEvent.offsetX;
-      offsetY = e.nativeEvent.offsetY;
+      offsetX = (e.nativeEvent.offsetX * scaleX - panOffset.x) / zoomLevel;
+      offsetY = (e.nativeEvent.offsetY * scaleY - panOffset.y) / zoomLevel;
     }
-
+  
     setIsDrawing(true);
-    const ctx = canvasRef.current.getContext('2d');
-    if (ctx) {
-      ctx.beginPath();
-      ctx.moveTo(offsetX, offsetY);
-      ctx.lineTo(offsetX, offsetY);
-      ctx.stroke();
-    }
+  
+    ctx.beginPath();
+    ctx.moveTo(offsetX, offsetY);
   };
+  
+  
+  // const startDrawing = (e) => {
+  //   e.preventDefault(); // Prevent default behavior for touch events
+
+  //   let offsetX, offsetY;
+  //   if (e.touches) {
+  //     // Handle touch events
+  //     offsetX = e.touches[0].clientX - canvasRef.current.getBoundingClientRect().left;
+  //     offsetY = e.touches[0].clientY - canvasRef.current.getBoundingClientRect().top;
+  //   } else {
+  //     // Handle mouse events
+  //     offsetX = e.nativeEvent.offsetX;
+  //     offsetY = e.nativeEvent.offsetY;
+  //   }
+
+  //   setIsDrawing(true);
+  //   const ctx = canvasRef.current.getContext('2d');
+  //   if (ctx) {
+  //     ctx.beginPath();
+  //     ctx.moveTo(offsetX, offsetY);
+  //     ctx.lineTo(offsetX, offsetY);
+  //     ctx.stroke();
+  //   }
+  // };
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return;
@@ -187,8 +216,8 @@ const Canvas = () => {
     const scaleY = canvas.height / rect.height;
 
     // Adjust mouse coordinates for zoom level
-    const x = ((e.clientX - rect.left) * scaleX) / zoomLevel;
-    const y = ((e.clientY - rect.top) * scaleY) / zoomLevel;
+    const x = ((e.clientX - rect.left) * scaleX - panOffset.x) / zoomLevel;
+    const y = ((e.clientY - rect.top) * scaleY - panOffset.y) / zoomLevel;
 
     ctx.lineWidth = 10 / zoomLevel; // Adjust line width based on zoom level
     ctx.lineCap = 'round';
