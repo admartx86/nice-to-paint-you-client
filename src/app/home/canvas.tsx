@@ -15,16 +15,17 @@ const Canvas = () => {
 
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const isPanning = useRef(false);
-  
+
   const [zoomLevel, setZoomLevel] = useState(1);
   const minZoom = 0.5;
   const maxZoom = 3;
+
+  const [currentColor, setCurrentColor] = useState('#000000');
 
   useEffect(() => {
     redrawCanvas();
   }, [panOffset]);
 
-  //Not so clear on this...
   useEffect(() => {
     const handleKeydown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.key === 'z') {
@@ -39,7 +40,6 @@ const Canvas = () => {
     };
   }, [history, redoHistory]);
 
-  //Why use useEffect for this?
   useEffect(() => {
     const canvas = canvasRef.current;
     if (canvas) {
@@ -126,15 +126,13 @@ const Canvas = () => {
 
   const handleZoom = (e) => {
     if (e.ctrlKey && (e.key === '+' || e.key === '-')) {
-      e.preventDefault(); // This prevents the browser's default zoom
+      e.preventDefault();
 
       let newZoomLevel = zoomLevel;
 
       if ((e.key === '+' && e.type === 'keydown') || (e.type === 'wheel' && e.deltaY < 0)) {
-        // Zoom in
         newZoomLevel = Math.min(zoomLevel * 1.1, maxZoom);
       } else if ((e.key === '-' && e.type === 'keydown') || (e.type === 'wheel' && e.deltaY > 0)) {
-        // Zoom out
         newZoomLevel = Math.max(zoomLevel / 1.1, minZoom);
       }
 
@@ -152,57 +150,30 @@ const Canvas = () => {
   };
 
   const startDrawing = (e) => {
-    e.preventDefault(); // Prevent default behavior for touch events
-  
+    e.preventDefault();
+
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-  
+
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-  
+
     let offsetX, offsetY;
     if (e.touches) {
-      // Handle touch events
       offsetX = (e.touches[0].clientX - rect.left) * scaleX - panOffset.x / zoomLevel;
       offsetY = (e.touches[0].clientY - rect.top) * scaleY - panOffset.y / zoomLevel;
     } else {
-      // Handle mouse events
       offsetX = (e.nativeEvent.offsetX * scaleX - panOffset.x) / zoomLevel;
       offsetY = (e.nativeEvent.offsetY * scaleY - panOffset.y) / zoomLevel;
     }
-  
+
     setIsDrawing(true);
-  
+
     ctx.beginPath();
     ctx.moveTo(offsetX, offsetY);
   };
-  
-  
-  // const startDrawing = (e) => {
-  //   e.preventDefault(); // Prevent default behavior for touch events
-
-  //   let offsetX, offsetY;
-  //   if (e.touches) {
-  //     // Handle touch events
-  //     offsetX = e.touches[0].clientX - canvasRef.current.getBoundingClientRect().left;
-  //     offsetY = e.touches[0].clientY - canvasRef.current.getBoundingClientRect().top;
-  //   } else {
-  //     // Handle mouse events
-  //     offsetX = e.nativeEvent.offsetX;
-  //     offsetY = e.nativeEvent.offsetY;
-  //   }
-
-  //   setIsDrawing(true);
-  //   const ctx = canvasRef.current.getContext('2d');
-  //   if (ctx) {
-  //     ctx.beginPath();
-  //     ctx.moveTo(offsetX, offsetY);
-  //     ctx.lineTo(offsetX, offsetY);
-  //     ctx.stroke();
-  //   }
-  // };
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return;
@@ -215,13 +186,12 @@ const Canvas = () => {
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
 
-    // Adjust mouse coordinates for zoom level
     const x = ((e.clientX - rect.left) * scaleX - panOffset.x) / zoomLevel;
     const y = ((e.clientY - rect.top) * scaleY - panOffset.y) / zoomLevel;
 
-    ctx.lineWidth = 10 / zoomLevel; // Adjust line width based on zoom level
+    ctx.lineWidth = 10 / zoomLevel;
     ctx.lineCap = 'round';
-    ctx.strokeStyle = 'black';
+    ctx.strokeStyle = currentColor;
 
     ctx.lineTo(x, y);
     ctx.stroke();
@@ -267,20 +237,14 @@ const Canvas = () => {
   };
 
   const redrawCanvas = () => {
-    
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
- 
-    // Clear the visible part of the canvas
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     ctx.restore();
     ctx.save();
-  
-    // Apply zoom level
- 
-  
-    // Redraw the last saved state from history
+
     if (history.length > 0) {
       const image = new Image();
       image.onload = () => {
@@ -288,16 +252,12 @@ const Canvas = () => {
       };
       image.src = history[history.length - 1];
     }
- 
-    
 
     ctx.scale(zoomLevel, zoomLevel);
-  
-    ctx.translate(panOffset.x, panOffset.y);
 
-    
+    ctx.translate(panOffset.x, panOffset.y);
   };
-  
+
   const pan = (e) => {
     if (!isPanning.current) return;
 
@@ -318,7 +278,7 @@ const Canvas = () => {
   const stopPan = () => {
     isPanning.current = false;
   };
-  
+
   const applyZoom = (newZoomLevel) => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -326,10 +286,8 @@ const Canvas = () => {
     ctx.save();
 
     ctx.scale(newZoomLevel, newZoomLevel);
-    ctx.translate(panOffset.x, panOffset.y); // Apply pan offset
-    
+    ctx.translate(panOffset.x, panOffset.y);
 
-    // Redraw the last saved state from history at the new scale
     if (history.length > 0) {
       const image = new Image();
       image.onload = () => {
@@ -343,13 +301,18 @@ const Canvas = () => {
     ctx.restore();
   };
 
+  const handleColorChange = (e) => {
+    setCurrentColor(e.target.value);
+  };
+
   return (
     <div>
+      <input type="color" value={currentColor} onChange={handleColorChange} />
       <canvas
         ref={canvasRef}
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}
-        onMouseOut={onMouseUp} // Using onMouseUp for consistency
+        onMouseOut={onMouseUp}
         onMouseMove={onMouseMove}
         style={{ border: '2px solid black', width: '100%', height: '500px' }}
       />
