@@ -85,11 +85,11 @@ const Canvas = () => {
     };
   }, [zoomLevel]);
 
-  useEffect(() => {
-    if (canvasRef.current) {
-      saveState();
-    }
-  }, []);
+  // useEffect(() => {
+  //   if (canvasRef.current) {
+  //     saveState();
+  //   }
+  // }, []);
 
   const onMouseDown = (e) => {
     mouseIsDown.current = true;
@@ -296,6 +296,7 @@ const Canvas = () => {
       image.src = history[history.length - 1];
     } else {
       redrawCanvas();
+      console.log('no history');
     }
 
     ctx.restore();
@@ -322,6 +323,7 @@ const Canvas = () => {
       isPanning {isPanning.current.toString()}
       panOffset x={panOffset.x}
       panOffset y={panOffset.y}
+      history length ={history.length}
     </div>
   );
 };
