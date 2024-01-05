@@ -4,23 +4,40 @@ import React, { useRef, useState, useEffect } from 'react';
 
 const Canvas = () => {
   const mouseIsDown = useRef(false);
-  const lastMousePosition = useRef({ x: 0, y: 0 });
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
+  
+  const [isDrawing, setIsDrawing] = useState(false)
 
   const [history, setHistory] = useState<string[]>([]);
   const [redoHistory, setRedoHistory] = useState<string[]>([]);
-  const drawingActions = useRef([]);
 
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const isPanning = useRef(false);
+  const lastMousePosition = useRef({ x: 0, y: 0 });
 
   const [zoomLevel, setZoomLevel] = useState(1);
   const minZoom = 0.5;
   const maxZoom = 3;
 
   const [currentColor, setCurrentColor] = useState('#000000');
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (history.length > 1) {
+      applyZoom(zoomLevel);
+    }
+  }, [zoomLevel]);
 
   useEffect(() => {
     redrawCanvas();
@@ -77,19 +94,11 @@ const Canvas = () => {
 
   useEffect(() => {
     window.addEventListener('keydown', handleZoom);
-    window.addEventListener('wheel', handleZoom, { passive: false });
-
     return () => {
       window.removeEventListener('keydown', handleZoom);
-      window.removeEventListener('wheel', handleZoom);
     };
   }, [zoomLevel]);
 
-  // useEffect(() => {
-  //   if (canvasRef.current) {
-  //     saveState();
-  //   }
-  // }, []);
 
   const onMouseDown = (e) => {
     mouseIsDown.current = true;
@@ -127,15 +136,12 @@ const Canvas = () => {
   const handleZoom = (e) => {
     if (e.ctrlKey && (e.key === '+' || e.key === '-')) {
       e.preventDefault();
-
       let newZoomLevel = zoomLevel;
-
-      if ((e.key === '+' && e.type === 'keydown') || (e.type === 'wheel' && e.deltaY < 0)) {
+      if (e.key === '+' && e.type === 'keydown') {
         newZoomLevel = Math.min(zoomLevel * 1.1, maxZoom);
-      } else if ((e.key === '-' && e.type === 'keydown') || (e.type === 'wheel' && e.deltaY > 0)) {
+      } else if (e.key === '-' && e.type === 'keydown') {
         newZoomLevel = Math.max(zoomLevel / 1.1, minZoom);
       }
-
       setZoomLevel(newZoomLevel);
       applyZoom(newZoomLevel);
     }
@@ -199,6 +205,7 @@ const Canvas = () => {
     ctx.moveTo(x, y);
   };
 
+  //when do we stop?
   const stopDrawing = () => {
     const ctx = canvasRef.current?.getContext('2d');
     if (ctx) {
@@ -282,23 +289,26 @@ const Canvas = () => {
   const applyZoom = (newZoomLevel) => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.save();
 
+    // Clear the canvas and apply transformations
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save(); // Save the context state before transformations
     ctx.scale(newZoomLevel, newZoomLevel);
     ctx.translate(panOffset.x, panOffset.y);
 
+    // Only proceed if there's history
     if (history.length > 0) {
       const image = new Image();
       image.onload = () => {
         ctx.drawImage(image, 0, 0, canvas.width * newZoomLevel, canvas.height * newZoomLevel);
       };
       image.src = history[history.length - 1];
+      console.log('history length', history.length);
     } else {
-      redrawCanvas();
+      // No history: just restore the context
+
       console.log('no history');
     }
-
     ctx.restore();
   };
 
@@ -309,6 +319,10 @@ const Canvas = () => {
   return (
     <div>
       <input type="color" value={currentColor} onChange={handleColorChange} />
+      <p>X: {mousePosition.x}</p>
+      <p>Y: {mousePosition.y}</p>
+      <p>Client X={lastMousePosition.current.x}</p>
+      <p>Client Y={lastMousePosition.current.y}</p>
       <canvas
         ref={canvasRef}
         onMouseDown={onMouseDown}
@@ -317,13 +331,14 @@ const Canvas = () => {
         onMouseMove={onMouseMove}
         style={{ border: '2px solid black', width: '100%', height: '500px' }}
       />
-      "zoomLevel"={zoomLevel}
-      Canvas width ={canvasRef.current?.width}
-      Canvas height ={canvasRef.current?.height}
-      isPanning {isPanning.current.toString()}
-      panOffset x={panOffset.x}
-      panOffset y={panOffset.y}
-      history length ={history.length}
+      <p>"zoomLevel"={zoomLevel}</p>
+      <p>Canvas width ={canvasRef.current?.width}</p>
+      <p>Canvas height ={canvasRef.current?.height}</p>
+      <p>isPanning {isPanning.current.toString()}</p>
+      <p>panOffset x={panOffset.x}</p>
+      <p>panOffset y={panOffset.y}</p>
+      <p>history length ={history.length}</p>
+      <p>mouseIsDown ={mouseIsDown.current} </p>
     </div>
   );
 };
